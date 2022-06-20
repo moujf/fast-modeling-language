@@ -17,6 +17,7 @@
 package com.aliyun.fastmodel.transform.oracle.context;
 
 import com.aliyun.fastmodel.transform.api.context.TransformContext;
+import lombok.Getter;
 
 /**
  * OracleContext
@@ -24,10 +25,20 @@ import com.aliyun.fastmodel.transform.api.context.TransformContext;
  * @author panguanjing
  * @date 2021/7/24
  */
+@Getter
 public class OracleContext extends TransformContext {
+
+    public static final int DEFAULT_LENGTH = 128;
+
+    private Integer varcharLength = DEFAULT_LENGTH;
 
     public OracleContext(TransformContext context) {
         super(context);
+        if (context instanceof OracleContext) {
+            OracleContext oracleContext = (OracleContext)context;
+            varcharLength = oracleContext.varcharLength;
+        }
+
     }
 
     protected OracleContext(Builder builder) {
@@ -40,7 +51,14 @@ public class OracleContext extends TransformContext {
 
     public static class Builder extends TransformContext.Builder {
 
+        private Integer varcharLength = DEFAULT_LENGTH;
+
         public Builder() {
+        }
+
+        public Builder varcharLength(Integer varcharLength) {
+            this.varcharLength = varcharLength;
+            return this;
         }
 
         @Override

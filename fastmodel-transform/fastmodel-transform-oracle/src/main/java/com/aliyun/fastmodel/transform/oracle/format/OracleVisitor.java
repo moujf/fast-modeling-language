@@ -21,7 +21,11 @@ import java.util.List;
 
 import com.aliyun.fastmodel.core.formatter.FastModelVisitor;
 import com.aliyun.fastmodel.core.tree.datatype.BaseDataType;
+import com.aliyun.fastmodel.core.tree.datatype.DataTypeEnums;
+import com.aliyun.fastmodel.core.tree.datatype.GenericDataType;
+import com.aliyun.fastmodel.core.tree.datatype.NumericParameter;
 import com.aliyun.fastmodel.core.tree.expr.BaseExpression;
+import com.aliyun.fastmodel.core.tree.expr.Identifier;
 import com.aliyun.fastmodel.core.tree.statement.table.AddCols;
 import com.aliyun.fastmodel.core.tree.statement.table.ColumnDefinition;
 import com.aliyun.fastmodel.core.tree.statement.table.CreateTable;
@@ -29,8 +33,10 @@ import com.aliyun.fastmodel.core.tree.statement.table.DropTable;
 import com.aliyun.fastmodel.core.tree.statement.table.SetColComment;
 import com.aliyun.fastmodel.core.tree.statement.table.SetTableComment;
 import com.aliyun.fastmodel.core.tree.statement.table.constraint.BaseConstraint;
+import com.aliyun.fastmodel.transform.api.datatype.DataTypeConverter;
 import com.aliyun.fastmodel.transform.api.format.DefaultExpressionVisitor;
 import com.aliyun.fastmodel.transform.oracle.context.OracleContext;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -45,8 +51,12 @@ import static java.util.stream.Collectors.joining;
 public class OracleVisitor extends FastModelVisitor {
     private final OracleContext oracleContext;
 
+    private final DataTypeConverter dataTypeTransformer;
+
     public OracleVisitor(OracleContext context) {
         oracleContext = context;
+        dataTypeTransformer = this.oracleContext != null ? oracleContext.getDataTypeTransformer()
+                : null;
     }
 
     @Override
@@ -133,7 +143,21 @@ public class OracleVisitor extends FastModelVisitor {
 
     @Override
     protected BaseDataType convert(BaseDataType dataType) {
-        return super.convert(dataType);
+        if (dataTypeTransformer != null) {
+            return dataTypeTransformer.convert(dataType);
+        }
+        DataTypeEnums typeName = dataType.getTypeName();
+        if (typeName == DataTypeEnums.STRING) {
+            return new GenericDataType(new Identifier(DataTypeEnums.VARCHAR.name()),
+                    ImmutableList.of(new NumericParameter(oracleContext.getVarcharLength().toString())));
+        } else if (typeName == DataTypeEnums.ARRAY || typeName == DataTypeEnums.MAP
+                || typeName == DataTypeEnums.STRUCT) {
+            return new GenericDataType(new Identifier(DataTypeEnums.JSON.name()));
+        } else if (typeName == DataTypeEnums.BOOLEAN) {
+            return new GenericDataType(new Identifier(DataTypeEnums.CHAR.name()),
+                    ImmutableList.of(new NumericParameter("1")));
+        }
+        return dataType;
     }
 
     @Override
@@ -180,7 +204,7 @@ public class OracleVisitor extends FastModelVisitor {
         BaseDataType dataType = column.getDataType();
         StringBuilder sb = new StringBuilder()
             .append(formatColName(column.getColName(), max))
-            .append(" ").append(convert(dataType));
+            .append(" ").append(formatExpression(convert(dataType)));
         return sb;
     }
 

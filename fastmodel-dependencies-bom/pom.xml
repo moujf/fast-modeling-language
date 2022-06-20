@@ -26,7 +26,7 @@
     <version>${revision}</version>
 
     <properties>
-        <revision>0.0.1-opensource-SNAPSHOT</revision>
+        <revision>0.0.1-opensource</revision>
         <maven_flatten_version>1.1.0</maven_flatten_version>
         <dep.jline.version>3.17.1</dep.jline.version>
     </properties>
@@ -268,4 +268,11 @@
             </plugin>
         </plugins>
     </build>
+    <distributionManagement>
+        <repository>
+            <id>thirdparty</id>
+            <name>Nexus Thirdparty Repository Pro</name>
+            <url>http://192.168.131.211:8888/nexus/repository/thirdparty/</url>
+        </repository>
+    </distributionManagement>
 </project>

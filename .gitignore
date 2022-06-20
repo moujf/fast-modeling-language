@@ -36,3 +36,9 @@ target/
 deploy.sh
 /fastmodel-parser/src/test/resources/lsp/gen/
 /**/package-lock.json
+
+# fml
+/**/gen
+
+# .VSCodeCounter
+.VSCodeCounter/

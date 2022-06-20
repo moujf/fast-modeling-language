@@ -16,12 +16,28 @@
 
 package com.aliyun.fastmodel.transform.example.dialect;
 
+import com.aliyun.fastmodel.core.tree.Comment;
+import com.aliyun.fastmodel.core.tree.QualifiedName;
+import com.aliyun.fastmodel.core.tree.datatype.DataTypeEnums;
+import com.aliyun.fastmodel.core.tree.datatype.GenericDataType;
+import com.aliyun.fastmodel.core.tree.datatype.NumericParameter;
+import com.aliyun.fastmodel.core.tree.expr.Identifier;
+import com.aliyun.fastmodel.core.tree.statement.constants.TableDetailType;
+import com.aliyun.fastmodel.core.tree.statement.table.ColumnDefinition;
+import com.aliyun.fastmodel.core.tree.statement.table.CreateTable;
+import com.aliyun.fastmodel.core.tree.util.DataTypeUtil;
+import com.aliyun.fastmodel.transform.api.context.TransformContext;
 import com.aliyun.fastmodel.transform.api.dialect.DialectMeta;
 import com.aliyun.fastmodel.transform.api.dialect.DialectName;
 import com.aliyun.fastmodel.transform.api.dialect.DialectNode;
 import com.aliyun.fastmodel.transform.api.dialect.transform.DialectTransform;
 import com.aliyun.fastmodel.transform.api.dialect.transform.DialectTransformParam;
+import com.aliyun.fastmodel.transform.fml.FmlTransformer;
+import com.aliyun.fastmodel.transform.fml.datatype.Fml2OracleDataTypeConverter;
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -106,6 +122,50 @@ public class DialectTransformTest {
         DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals(dialectNode.getNode(), "COMMENT ON TABLE dim_shop IS 'comment';\n"
             + "COMMENT ON TABLE dim_shop IS 'comment';");
+    }
+
+
+    @Test
+    public void testFmlToOracle() {
+        Fml2OracleDataTypeConverter fml2OracleDataTypeConverter = new Fml2OracleDataTypeConverter();
+//        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("col1"))
+//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
+//                        .name()), null))
+//                .comment(new Comment("测试DATE类型")).build();
+//        ColumnDefinition col2 = ColumnDefinition.builder().colName(new Identifier("col2"))
+//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
+//                        .name()), null))
+//                .notNull(true)
+//                .comment(new Comment("测试必填")).build();
+        ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
+                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
+                .primary(true)
+                .comment(new Comment("测试主键")).build();
+//        ColumnDefinition i1 = ColumnDefinition.builder().colName(new Identifier("i1"))
+//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.BIGINT
+//                        .name()), null))
+//                .comment(new Comment("测试数值")).build();
+//        ColumnDefinition b = ColumnDefinition.builder().colName(new Identifier("b"))
+//                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
+//                .build();
+        List<ColumnDefinition> columns = ImmutableList.of(
+                id
+        );
+        CreateTable createTable = CreateTable.builder()
+                .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
+                .detailType(TableDetailType.NORMAL_DIM).columns(columns)
+                .build();
+        FmlTransformer fmlTransformer = new FmlTransformer();
+        DialectNode sourceNode = fmlTransformer.transform(createTable);
+        DialectTransformParam param = DialectTransformParam.builder()
+                .sourceMeta(DialectMeta.getByName(DialectName.FML))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.ORACLE))
+//                .transformContext(TransformContext.builder().dataTypeTransformer(fml2OracleDataTypeConverter).build())
+                .build();
+        DialectNode dialectNode = DialectTransform.transform(param);
+        assertEquals(dialectNode.getNode(), "COMMENT ON TABLE dim_shop IS 'comment';\n"
+                + "COMMENT ON TABLE dim_shop IS 'comment';");
     }
 
     @Test
