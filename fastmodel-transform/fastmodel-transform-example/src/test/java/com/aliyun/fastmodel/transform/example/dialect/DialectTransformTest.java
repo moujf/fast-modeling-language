@@ -52,95 +52,98 @@ public class DialectTransformTest {
     @Test
     public void testTransformOracleToMysql() {
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT);"))
-            .targetMeta(DialectMeta.DEFAULT_MYSQL)
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT);"))
+                .targetMeta(DialectMeta.DEFAULT_MYSQL)
+                .build();
         DialectNode transform = DialectTransform.transform(param);
         String node = transform.getNode();
         assertEquals(node, "CREATE TABLE a\n"
-            + "(\n"
-            + "   b BIGINT\n"
-            + ")"
+                + "(\n"
+                + "   b BIGINT\n"
+                + ")"
         );
     }
 
     @Test
     public void testTransformOracelToMysqlMerge() {
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT); COMMENT ON TABLE a IS  'comment';"))
-            .targetMeta(DialectMeta.DEFAULT_MYSQL)
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT); COMMENT ON TABLE a IS  'comment';"))
+                .targetMeta(DialectMeta.DEFAULT_MYSQL)
+                .build();
         DialectNode transform = DialectTransform.transform(param);
         assertEquals(transform.getNode(), "CREATE TABLE a\n"
-            + "(\n"
-            + "   b BIGINT\n"
-            + ") COMMENT 'comment'"
+                + "(\n"
+                + "   b BIGINT\n"
+                + ") COMMENT 'comment'"
         );
     }
 
     @Test
     public void testTransformOracelToHiveMerge() {
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT); COMMENT ON TABLE a IS  'comment';"))
-            .targetMeta(DialectMeta.DEFAULT_HIVE)
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(new DialectNode("CREATE TABLE a (b BIGINT); COMMENT ON TABLE a IS  'comment';"))
+                .targetMeta(DialectMeta.DEFAULT_HIVE)
+                .build();
         DialectNode transform = DialectTransform.transform(param);
         assertEquals(transform.getNode(), "CREATE TABLE a\n"
-            + "(\n"
-            + "   b BIGINT\n"
-            + ")\n"
-            + "COMMENT 'comment'"
+                + "(\n"
+                + "   b BIGINT\n"
+                + ")\n"
+                + "COMMENT 'comment'"
         );
     }
 
     @Test
     public void testMultiFile() {
         DialectNode sourceNode = new DialectNode(
-            "COMMENT ON TABLE dim_shop IS 'comment';\n COMMENT ON TABLE dim_shop IS 'comment';");
+                "COMMENT ON TABLE dim_shop IS 'comment';\n COMMENT ON TABLE dim_shop IS 'comment';");
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(sourceNode)
-            .targetMeta(DialectMeta.getByName(DialectName.FML))
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.FML))
+                .build();
         DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals(dialectNode.getNode(), "ALTER TABLE dim_shop SET COMMENT 'comment';\n"
-            + "ALTER TABLE dim_shop SET COMMENT 'comment';");
+                + "ALTER TABLE dim_shop SET COMMENT 'comment';");
     }
 
     @Test
     public void testFmlToOracleMultiFile() {
         DialectNode sourceNode = new DialectNode(
-            "ALTER TABLE dim_shop SET COMMENT 'comment';\n ALTER TABLE dim_shop SET COMMENT 'comment';");
+                "ALTER TABLE dim_shop SET COMMENT 'comment';\n ALTER TABLE dim_shop SET COMMENT 'comment';");
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.FML))
-            .sourceNode(sourceNode)
-            .targetMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.FML))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .build();
         DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals(dialectNode.getNode(), "COMMENT ON TABLE dim_shop IS 'comment';\n"
-            + "COMMENT ON TABLE dim_shop IS 'comment';");
+                + "COMMENT ON TABLE dim_shop IS 'comment';");
     }
 
 
     @Test
     public void testFmlToOracle() {
-        Fml2OracleDataTypeConverter fml2OracleDataTypeConverter = new Fml2OracleDataTypeConverter();
-//        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("col1"))
-//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
-//                        .name()), null))
-//                .comment(new Comment("测试DATE类型")).build();
+        ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
+                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
+                .primary(true)
+                .comment(new Comment("测试主键")).build();
+        ColumnDefinition id2 = ColumnDefinition.builder().colName(new Identifier("id2"))
+                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
+                .primary(true)
+                .comment(new Comment("测试主键")).build();
+        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("col1"))
+                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
+                        .name()), null))
+                .comment(new Comment("测试DATE类型")).build();
 //        ColumnDefinition col2 = ColumnDefinition.builder().colName(new Identifier("col2"))
 //                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
 //                        .name()), null))
 //                .notNull(true)
 //                .comment(new Comment("测试必填")).build();
-        ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
-                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
-                .primary(true)
-                .comment(new Comment("测试主键")).build();
 //        ColumnDefinition i1 = ColumnDefinition.builder().colName(new Identifier("i1"))
 //                .dataType(new GenericDataType(new Identifier(DataTypeEnums.BIGINT
 //                        .name()), null))
@@ -149,7 +152,7 @@ public class DialectTransformTest {
 //                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
 //                .build();
         List<ColumnDefinition> columns = ImmutableList.of(
-                id
+                id, id2, col1
         );
         CreateTable createTable = CreateTable.builder()
                 .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
@@ -164,58 +167,64 @@ public class DialectTransformTest {
 //                .transformContext(TransformContext.builder().dataTypeTransformer(fml2OracleDataTypeConverter).build())
                 .build();
         DialectNode dialectNode = DialectTransform.transform(param);
-        assertEquals(dialectNode.getNode(), "COMMENT ON TABLE dim_shop IS 'comment';\n"
-                + "COMMENT ON TABLE dim_shop IS 'comment';");
+        assertEquals(dialectNode.getNode(), "CREATE TABLE dim_shop (\n" +
+                "   id   NUMBER(36),\n" +
+                "   col1 DATE,\n" +
+                "   PRIMARY KEY(id)\n" +
+                ");\n" +
+                "COMMENT ON TABLE dim_shop IS '测试表';\n" +
+                "COMMENT ON COLUMN dim_shop.id IS '测试主键';\n" +
+                "COMMENT ON COLUMN dim_shop.col1 IS '测试DATE类型';");
     }
 
     @Test
     public void testOracleToFml() {
         DialectNode sourceNode = new DialectNode(
-            "CREATE TABLE dim_shop(a VARCHAR2(10)); "
+                "CREATE TABLE dim_shop(a VARCHAR2(10)); "
         );
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(sourceNode)
-            .targetMeta(DialectMeta.getByName(DialectName.FML))
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.FML))
+                .build();
         DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals(dialectNode.getNode(), "CREATE DIM TABLE dim_shop \n"
-            + "(\n"
-            + "   a VARCHAR(10)\n"
-            + ")");
+                + "(\n"
+                + "   a VARCHAR(10)\n"
+                + ")");
     }
 
     @Test
     public void testOracleToFmlChar() {
         DialectNode sourceNode = new DialectNode(
-            "CREATE TABLE dim_shop(a CHAR(10)); "
+                "CREATE TABLE dim_shop(a CHAR(10)); "
         );
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(sourceNode)
-            .targetMeta(DialectMeta.getByName(DialectName.FML))
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.FML))
+                .build();
         DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals(dialectNode.getNode(), "CREATE DIM TABLE dim_shop \n"
-            + "(\n"
-            + "   a CHAR(10)\n"
-            + ")");
+                + "(\n"
+                + "   a CHAR(10)\n"
+                + ")");
     }
 
     @Test
     public void testOracleToMysql() {
         DialectNode source = new DialectNode(
-            "create table dim_shop(a LONG);"
+                "create table dim_shop(a LONG);"
         );
         DialectTransformParam param = DialectTransformParam.builder()
-            .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
-            .sourceNode(source)
-            .targetMeta(DialectMeta.getByName(DialectName.MYSQL))
-            .build();
+                .sourceMeta(DialectMeta.getByName(DialectName.ORACLE))
+                .sourceNode(source)
+                .targetMeta(DialectMeta.getByName(DialectName.MYSQL))
+                .build();
         DialectNode transform = DialectTransform.transform(param);
         assertEquals("CREATE TABLE dim_shop\n"
-            + "(\n"
-            + "   a LONGTEXT\n"
-            + ")", transform.getNode());
+                + "(\n"
+                + "   a LONGTEXT\n"
+                + ")", transform.getNode());
     }
 }

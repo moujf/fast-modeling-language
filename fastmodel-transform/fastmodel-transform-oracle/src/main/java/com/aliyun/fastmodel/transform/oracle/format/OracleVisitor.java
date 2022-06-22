@@ -119,7 +119,7 @@ public class OracleVisitor extends FastModelVisitor {
             }
             if (!commentString.isEmpty()) {
                 builder.append("\n");
-                builder.append(commentString.stream().collect(joining(";\n")));
+                builder.append(commentString.stream().collect(joining("\n")));
             }
 
         }
@@ -186,9 +186,6 @@ public class OracleVisitor extends FastModelVisitor {
     protected String formatColumnDefinition(ColumnDefinition column, Integer max) {
         StringBuilder sb = appendNameAndType(column, max);
         boolean isPrimary = column.getPrimary() != null && column.getPrimary();
-        if (isPrimary) {
-            sb.append(" PRIMARY KEY");
-        }
         boolean isNotNull = column.getNotNull() != null && column.getNotNull();
         if (!isPrimary && isNotNull) {
             sb.append(" NOT NULL");
