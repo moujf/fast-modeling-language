@@ -185,6 +185,9 @@ public class OracleVisitor extends FastModelVisitor {
     @Override
     protected String formatColumnDefinition(ColumnDefinition column, Integer max) {
         StringBuilder sb = appendNameAndType(column, max);
+        if (column.getDefaultValue() != null) {
+            sb.append(" DEFAULT ").append(formatExpression(column.getDefaultValue()));
+        }
         boolean isPrimary = column.getPrimary() != null && column.getPrimary();
         boolean isNotNull = column.getNotNull() != null && column.getNotNull();
         if (!isPrimary && isNotNull) {

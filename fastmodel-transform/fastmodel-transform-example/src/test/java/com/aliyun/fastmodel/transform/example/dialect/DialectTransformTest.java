@@ -22,6 +22,7 @@ import com.aliyun.fastmodel.core.tree.datatype.DataTypeEnums;
 import com.aliyun.fastmodel.core.tree.datatype.GenericDataType;
 import com.aliyun.fastmodel.core.tree.datatype.NumericParameter;
 import com.aliyun.fastmodel.core.tree.expr.Identifier;
+import com.aliyun.fastmodel.core.tree.expr.literal.StringLiteral;
 import com.aliyun.fastmodel.core.tree.statement.constants.TableDetailType;
 import com.aliyun.fastmodel.core.tree.statement.table.ColumnDefinition;
 import com.aliyun.fastmodel.core.tree.statement.table.CreateTable;
@@ -124,14 +125,9 @@ public class DialectTransformTest {
                 + "COMMENT ON TABLE dim_shop IS 'comment';");
     }
 
-
     @Test
-    public void testFmlToOracle() {
+    public void testFmlToHive() {
         ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
-                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
-                .primary(true)
-                .comment(new Comment("测试主键")).build();
-        ColumnDefinition id2 = ColumnDefinition.builder().colName(new Identifier("id2"))
                 .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
                 .primary(true)
                 .comment(new Comment("测试主键")).build();
@@ -152,7 +148,57 @@ public class DialectTransformTest {
 //                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
 //                .build();
         List<ColumnDefinition> columns = ImmutableList.of(
-                id, id2, col1
+                id, col1
+        );
+        CreateTable createTable = CreateTable.builder()
+                .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
+                .detailType(TableDetailType.NORMAL_DIM).columns(columns)
+                .build();
+        FmlTransformer fmlTransformer = new FmlTransformer();
+        DialectNode sourceNode = fmlTransformer.transform(createTable);
+        DialectTransformParam param = DialectTransformParam.builder()
+                .sourceMeta(DialectMeta.getByName(DialectName.FML))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.HIVE))
+//                .transformContext(TransformContext.builder().dataTypeTransformer(fml2OracleDataTypeConverter).build())
+                .build();
+        DialectNode dialectNode = DialectTransform.transform(param);
+        assertEquals("CREATE TABLE dim_shop\n" +
+                "(\n" +
+                "   id   CUSTOM(36) COMMENT '测试主键',\n" +
+                "   col1 DATE COMMENT '测试DATE类型'\n" +
+                ")\n" +
+                "COMMENT '测试表'", dialectNode.getNode());
+        DialectTransform.transform(param);
+    }
+
+    @Test
+    public void testFmlToOracle() {
+        ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
+                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
+                .primary(true)
+                .comment(new Comment("测试主键")).build();
+        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("col1"))
+                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
+                        .name()), null))
+                .comment(new Comment("测试DATE类型")).build();
+        ColumnDefinition col2 = ColumnDefinition.builder().colName(new Identifier("col2"))
+//                .dataType(DataTypeUtil.simpleType("String", ImmutableList.of(new NumericParameter("36"))))
+                .dataType(new GenericDataType(new Identifier(DataTypeEnums.VARCHAR
+                        .name()), ImmutableList.of(new NumericParameter("36"))))
+                .notNull(true)
+                //默认值
+                .defaultValue(new StringLiteral("123"))
+                .comment(new Comment("测试默认值")).build();
+//        ColumnDefinition i1 = ColumnDefinition.builder().colName(new Identifier("i1"))
+//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.BIGINT
+//                        .name()), null))
+//                .comment(new Comment("测试数值")).build();
+//        ColumnDefinition b = ColumnDefinition.builder().colName(new Identifier("b"))
+//                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
+//                .build();
+        List<ColumnDefinition> columns = ImmutableList.of(
+                id, col1, col2
         );
         CreateTable createTable = CreateTable.builder()
                 .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
@@ -170,11 +216,14 @@ public class DialectTransformTest {
         assertEquals(dialectNode.getNode(), "CREATE TABLE dim_shop (\n" +
                 "   id   NUMBER(36),\n" +
                 "   col1 DATE,\n" +
+                "   col2 VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
                 "   PRIMARY KEY(id)\n" +
                 ");\n" +
                 "COMMENT ON TABLE dim_shop IS '测试表';\n" +
                 "COMMENT ON COLUMN dim_shop.id IS '测试主键';\n" +
-                "COMMENT ON COLUMN dim_shop.col1 IS '测试DATE类型';");
+                "COMMENT ON COLUMN dim_shop.col1 IS '测试DATE类型';\n" +
+                "COMMENT ON COLUMN dim_shop.col2 IS '测试默认值';");
+        DialectTransform.transform(param);
     }
 
     @Test

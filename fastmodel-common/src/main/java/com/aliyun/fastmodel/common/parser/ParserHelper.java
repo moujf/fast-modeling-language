@@ -28,6 +28,7 @@ import com.aliyun.fastmodel.core.tree.expr.literal.DecimalLiteral;
 import com.aliyun.fastmodel.core.tree.expr.literal.DoubleLiteral;
 import com.aliyun.fastmodel.core.tree.expr.literal.LongLiteral;
 import com.aliyun.fastmodel.core.tree.expr.literal.StringLiteral;
+import lombok.extern.slf4j.Slf4j;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -36,6 +37,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.StopWatch;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -46,6 +48,7 @@ import static java.util.stream.Collectors.toList;
  * @author panguanjing
  * @date 2020/11/19
  */
+@Slf4j
 public class ParserHelper {
 
     public static final String PREFIX = "`";
@@ -135,10 +138,15 @@ public class ParserHelper {
 
     public static <T> List<T> visit(AbstractParseTreeVisitor visitor, List<? extends ParseTree> contexts,
                                     Class<T> clazz) {
-        return contexts.stream()
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        List<T> list = contexts.stream()
             .map(visitor::visit)
             .map(clazz::cast)
             .collect(toList());
+        stopWatch.stop();
+        log.info("第{}步运行时间：{}", 1, stopWatch.getTime());
+        return list;
     }
 
     public static Identifier getIdentifier(ParserRuleContext ctx) {

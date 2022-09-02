@@ -210,10 +210,12 @@ import com.aliyun.fastmodel.parser.generate.FastModelGrammarParser.WindowFrameCo
 import com.aliyun.fastmodel.parser.generate.FastModelGrammarParserBaseVisitor;
 import com.aliyun.fastmodel.parser.generate.FastModelLexer;
 import com.google.common.collect.ImmutableList;
+import lombok.extern.slf4j.Slf4j;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.time.StopWatch;
 
 import static com.aliyun.fastmodel.common.parser.ParserHelper.getLocation;
 import static com.aliyun.fastmodel.common.parser.ParserHelper.getOrigin;
@@ -225,6 +227,7 @@ import static java.util.stream.Collectors.toList;
  * @author panguanjing
  * @date 2020/11/5
  */
+@Slf4j
 public class AstBuilder extends FastModelGrammarParserBaseVisitor<Node> {
 
     public static final String IF = "if";
@@ -234,7 +237,12 @@ public class AstBuilder extends FastModelGrammarParserBaseVisitor<Node> {
 
     @Override
     public Node visitRoot(RootContext ctx) {
-        return visit(ctx.sqlStatements());
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        Node node = visit(ctx.sqlStatements());
+        stopWatch.stop();
+        log.info("第{}步运行时间：{}", 1, stopWatch.getTime());
+        return node;
     }
 
     @Override
