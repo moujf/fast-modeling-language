@@ -19,6 +19,7 @@ package com.aliyun.fastmodel.transform.oracle.format;
 import java.util.Iterator;
 import java.util.List;
 
+import com.aliyun.fastmodel.core.formatter.ExpressionFormatter;
 import com.aliyun.fastmodel.core.formatter.FastModelVisitor;
 import com.aliyun.fastmodel.core.tree.datatype.BaseDataType;
 import com.aliyun.fastmodel.core.tree.datatype.DataTypeEnums;
@@ -26,12 +27,7 @@ import com.aliyun.fastmodel.core.tree.datatype.GenericDataType;
 import com.aliyun.fastmodel.core.tree.datatype.NumericParameter;
 import com.aliyun.fastmodel.core.tree.expr.BaseExpression;
 import com.aliyun.fastmodel.core.tree.expr.Identifier;
-import com.aliyun.fastmodel.core.tree.statement.table.AddCols;
-import com.aliyun.fastmodel.core.tree.statement.table.ColumnDefinition;
-import com.aliyun.fastmodel.core.tree.statement.table.CreateTable;
-import com.aliyun.fastmodel.core.tree.statement.table.DropTable;
-import com.aliyun.fastmodel.core.tree.statement.table.SetColComment;
-import com.aliyun.fastmodel.core.tree.statement.table.SetTableComment;
+import com.aliyun.fastmodel.core.tree.statement.table.*;
 import com.aliyun.fastmodel.core.tree.statement.table.constraint.BaseConstraint;
 import com.aliyun.fastmodel.transform.api.datatype.DataTypeConverter;
 import com.aliyun.fastmodel.transform.api.format.DefaultExpressionVisitor;
@@ -236,5 +232,12 @@ public class OracleVisitor extends FastModelVisitor {
     @Override
     protected String formatExpression(BaseExpression baseExpression) {
         return new DefaultExpressionVisitor().process(baseExpression);
+    }
+
+    @Override
+    public Boolean visitChangeCol(ChangeCol renameCol, Integer context) {
+        builder.append("ALTER TABLE ").append(getCode(renameCol.getQualifiedName()));
+        builder.append(" MODIFY ").append(formatColumnDefinition(renameCol.getColumnDefinition(), 0));
+        return true;
     }
 }
