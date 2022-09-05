@@ -61,15 +61,12 @@ public class CompareDdlTest {
         DialectNode beforeDialectNode = transformer.transform(before);
         String mysqlDDL
                 = "create table dim_shop (c1 bigint comment 'abc', c2 varchar(128) comment 'c2') COMMENT 'comment'";
-        List<BaseStatement> delegate = NodeCompareFactory.getInstance()
-                .compare(DialectMeta.DEFAULT_MYSQL, beforeDialectNode.getNode(), mysqlDDL,
-                        CompareContext.builder().build());
-        String print = print(delegate);
-        assertEquals(print, "ALTER TABLE dim_shop DROP COLUMN a;\n"
-                + "ALTER TABLE dim_shop ADD COLUMNS\n"
-                + "(\n"
-                + "   c2 VARCHAR(128) COMMENT 'c2'\n"
-                + ")");
+        assertEquals("ALTER TABLE dim_shop DROP COLUMN a;\n" +
+                "ALTER TABLE dim_shop ADD\n" +
+                "(\n" +
+                "   c2 VARCHAR(128) COMMENT 'c2'\n" +
+                ")", NodeCompareFactory.getInstance()
+                .compareAndFormat(DialectMeta.DEFAULT_MYSQL, beforeDialectNode.getNode(), mysqlDDL));
     }
 
     @Test
@@ -98,34 +95,21 @@ public class CompareDdlTest {
     @Test
     public void testCompareOracleModifyCol() {
         String beforeDDL
-                = "CREATE TABLE dim_shop (\n" +
-                "   id   NUMBER(36),\n" +
-                "   col1 DATE,\n" +
-                "   col2 VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
-                "   PRIMARY KEY(id)\n" +
-                ");\n";
+                = "CREATE TABLE sdfdsf (\n" +
+                "   name VARCHAR(10) DEFAULT '',\n" +
+                "   PRIMARY KEY(name)\n" +
+                ");\n" +
+                "COMMENT ON TABLE sdfdsf IS '水电费费';\n" +
+                "COMMENT ON COLUMN sdfdsf.name IS '水电费';";
         String afterDDL
-                = "CREATE TABLE dim_shop (\n" +
-                "   id   VARCHAR(37),\n" +
-                "   col1 DATE,\n" +
-                "   col2 VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
-                "   PRIMARY KEY(id)\n" +
-                ");\n";
-        List<BaseStatement> delegate = NodeCompareFactory.getInstance()
-                .compare(DialectMeta.getByName(DialectName.ORACLE), beforeDDL, afterDDL,
-                        CompareContext.builder().build());
-        String print = print(delegate);
-
-        DialectNode sourceNode = new DialectNode(
-                print
-        );
-        DialectTransformParam param = DialectTransformParam.builder()
-                .sourceMeta(DialectMeta.getByName(DialectName.FML))
-                .sourceNode(sourceNode)
-                .targetMeta(DialectMeta.getByName(DialectName.ORACLE))
-                .build();
-        DialectNode dialectNode = DialectTransform.transform(param);
-        assertEquals("ALTER TABLE dim_shop MODIFY id VARCHAR(37)", dialectNode.getNode());
+                = "CREATE TABLE sdfdsf (\n" +
+                "   name VARCHAR(11) DEFAULT '',\n" +
+                "   PRIMARY KEY(name)\n" +
+                ");\n" +
+                "COMMENT ON TABLE sdfdsf IS '水电费费';\n" +
+                "COMMENT ON COLUMN sdfdsf.name IS '水电费';";
+        assertEquals("ALTER TABLE dim_shop MODIFY id VARCHAR(37)", NodeCompareFactory.getInstance()
+                .compareAndFormat(DialectMeta.getByName(DialectName.ORACLE), beforeDDL, afterDDL));
     }
 
     @Test
@@ -144,25 +128,12 @@ public class CompareDdlTest {
                 "   col2 VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
                 "   PRIMARY KEY(id1)\n" +
                 ");\n";
-        List<BaseStatement> delegate = NodeCompareFactory.getInstance()
-                .compare(DialectMeta.getByName(DialectName.ORACLE), beforeDDL, afterDDL,
-                        CompareContext.builder().build());
-        String print = print(delegate);
-
-        DialectNode sourceNode = new DialectNode(
-                print
-        );
-        DialectTransformParam param = DialectTransformParam.builder()
-                .sourceMeta(DialectMeta.getByName(DialectName.FML))
-                .sourceNode(sourceNode)
-                .targetMeta(DialectMeta.getByName(DialectName.ORACLE))
-                .build();
-        DialectNode dialectNode = DialectTransform.transform(param);
         assertEquals("ALTER TABLE dim_shop DROP COLUMN id;\n" +
                 "ALTER TABLE IF EXISTS dim_shop ADD COLUMN id1 VARCHAR(37);\n" +
                 ";\n" +
                 "ALTER TABLE dim_shop DROP CONSTRAINT sys_57bcbbea32664b318fb2331dc518891c;\n" +
-                "ALTER TABLE dim_shop ADD PRIMARY KEY(id1);", dialectNode.getNode());
+                "ALTER TABLE dim_shop ADD PRIMARY KEY(id1);", NodeCompareFactory.getInstance()
+                .compareAndFormat(DialectMeta.getByName(DialectName.ORACLE), beforeDDL, afterDDL));
     }
 
     private String print(List<BaseStatement> delegate) {

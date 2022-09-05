@@ -20,11 +20,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import com.aliyun.fastmodel.core.tree.BaseStatement;
 import com.aliyun.fastmodel.transform.api.dialect.Dialect;
 import com.aliyun.fastmodel.transform.api.dialect.DialectMeta;
+import com.aliyun.fastmodel.transform.api.dialect.DialectName;
 import com.aliyun.fastmodel.transform.api.dialect.DialectNode;
+import com.aliyun.fastmodel.transform.api.dialect.transform.DialectTransform;
+import com.aliyun.fastmodel.transform.api.dialect.transform.DialectTransformParam;
 
 /**
  * Node Compare Factory
@@ -56,6 +60,26 @@ public class NodeCompareFactory {
                                        String before, String after, CompareContext context) {
         CompareResult result = compareResult(dialectMeta, before, after, context);
         return result.getDiffStatements();
+    }
+
+    public String compareAndFormat(DialectMeta dialectMeta,
+                                   String before, String after) {
+        return this.compareAndFormat(dialectMeta, before, after, CompareContext.builder().build());
+    }
+
+    public String compareAndFormat(DialectMeta dialectMeta,
+                                   String before, String after, CompareContext context) {
+        CompareResult result = compareResult(dialectMeta, before, after, context);
+        return result.getDiffStatements().stream().map(diffStatement -> {
+            DialectNode sourceNode = new DialectNode(diffStatement.toString());
+            DialectTransformParam param = DialectTransformParam.builder()
+                    .sourceMeta(DialectMeta.getByName(DialectName.FML))
+                    .sourceNode(sourceNode)
+                    .targetMeta(dialectMeta)
+                    .build();
+            DialectNode dialectNode = DialectTransform.transform(param);
+            return dialectNode.getNode();
+        }).collect(Collectors.joining(";\n"));
     }
 
     public CompareResult compareResult(DialectMeta dialectMeta,

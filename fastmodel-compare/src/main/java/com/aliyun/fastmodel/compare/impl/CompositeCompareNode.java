@@ -33,6 +33,7 @@ import com.aliyun.fastmodel.core.tree.Node;
 import com.aliyun.fastmodel.core.tree.QualifiedName;
 import com.aliyun.fastmodel.core.tree.statement.BaseCreate;
 import com.aliyun.fastmodel.core.tree.statement.CompositeStatement;
+import com.aliyun.fastmodel.core.tree.statement.table.SetTableComment;
 import com.google.common.collect.Lists;
 
 /**
@@ -58,13 +59,13 @@ public class CompositeCompareNode extends BaseCompareNode<CompositeStatement> {
         if (beforePresent) {
             Node node = before.get();
             if (!(node instanceof CompositeStatement) && node instanceof BaseStatement) {
-                left = Optional.of(new CompositeStatement(Arrays.asList((BaseStatement)node)));
+                left = Optional.of(new CompositeStatement(Arrays.asList((BaseStatement) node)));
             }
         }
         if (afterPresent) {
             Node node = after.get();
             if (!(node instanceof CompositeStatement) && node instanceof BaseStatement) {
-                right = Optional.of(new CompositeStatement(Arrays.asList((BaseStatement)node)));
+                right = Optional.of(new CompositeStatement(Arrays.asList((BaseStatement) node)));
             }
         }
         return new ComparePair(left, right);
@@ -76,7 +77,9 @@ public class CompositeCompareNode extends BaseCompareNode<CompositeStatement> {
                                              CompareStrategy strategy) {
 
         List<BaseStatement> result = getBaseStatementsIfOneNull(before, after, strategy);
-        if (result != null) {return result;}
+        if (result != null) {
+            return result;
+        }
         result = new ArrayList<>();
         //将传入的statement都改为可以排序的列表
         List<BaseStatement> beforeList = Lists.newArrayList(before.getStatements());
@@ -104,7 +107,9 @@ public class CompositeCompareNode extends BaseCompareNode<CompositeStatement> {
             BaseStatement baseStatement = beforeList.get(i);
             BaseStatement afterStatement = afterList.get(i);
             BaseCompareNode baseCompareNode = singleStatementCompare.get(baseStatement.getClass().getName());
-            result.addAll(baseCompareNode.compareResult(baseStatement, afterStatement, strategy));
+            if (baseCompareNode != null) {
+                result.addAll(baseCompareNode.compareResult(baseStatement, afterStatement, strategy));
+            }
         }
         if (size < beforeSize) {
             for (int start = size; start < beforeSize; start++) {
@@ -124,25 +129,32 @@ public class CompositeCompareNode extends BaseCompareNode<CompositeStatement> {
 
     private List<QualifiedName> getQualifiedNames(List<BaseStatement> beforeList) {
         return beforeList.stream()
-            .filter(statement -> statement instanceof BaseCreate).map(
-                baseStatement -> {
-                    BaseCreate b = (BaseCreate)baseStatement;
-                    return b.getQualifiedName();
-                }
-            )
-            .collect(Collectors.toList());
+                .filter(statement -> statement instanceof BaseCreate).map(
+                        baseStatement -> {
+                            BaseCreate b = (BaseCreate) baseStatement;
+                            return b.getQualifiedName();
+                        }
+                )
+                .collect(Collectors.toList());
     }
 
     private void sort(List<BaseStatement> beforeList, List<QualifiedName> afterQualifiedName) {
         Collections.sort(beforeList,
-            Comparator.comparing(item -> {
-                BaseCreate baseCreate = (BaseCreate)item;
-                int index = afterQualifiedName.indexOf(baseCreate.getQualifiedName());
-                if (index == -1) {
-                    return Integer.MAX_VALUE;
-                }
-                return index;
-            }));
+                Comparator.comparing(item -> {
+                    QualifiedName beforeQualifiedName = null;
+                    if (item instanceof BaseCreate) {
+                        BaseCreate baseCreate = (BaseCreate) item;
+                        beforeQualifiedName = baseCreate.getQualifiedName();
+                    } else if (item instanceof SetTableComment) {
+                        SetTableComment setTableComment = (SetTableComment) item;
+                        beforeQualifiedName = setTableComment.getQualifiedName();
+                    }
+                    int index = afterQualifiedName.indexOf(beforeQualifiedName);
+                    if (index == -1) {
+                        return Integer.MAX_VALUE;
+                    }
+                    return index;
+                }));
     }
 
     private List<BaseStatement> getBaseStatementsIfOneNull(CompositeStatement before, CompositeStatement after,
