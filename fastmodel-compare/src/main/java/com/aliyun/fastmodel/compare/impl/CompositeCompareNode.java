@@ -115,7 +115,9 @@ public class CompositeCompareNode extends BaseCompareNode<CompositeStatement> {
             for (int start = size; start < beforeSize; start++) {
                 BaseStatement baseStatement = beforeList.get(start);
                 BaseCompareNode baseCompareNode = singleStatementCompare.get(baseStatement.getClass().getName());
-                result.addAll(baseCompareNode.compareResult(baseStatement, null, strategy));
+                if(baseCompareNode != null) {
+                	result.addAll(baseCompareNode.compareResult(baseStatement, null, strategy));
+                }
             }
         } else if (size < afterSize) {
             for (int start = size; start < afterSize; start++) {

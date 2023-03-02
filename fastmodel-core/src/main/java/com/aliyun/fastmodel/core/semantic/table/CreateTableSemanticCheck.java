@@ -82,12 +82,12 @@ public class CreateTableSemanticCheck implements SemanticCheck<CreateTable> {
         List<BaseConstraint> constraintStatements) {
 
         //primaryKeyConstraint只允许有一个
-        Map<String, List<BaseConstraint>> collect = constraintStatements.stream().collect(
-            Collectors.groupingBy(x -> x.getClass().getName()));
-        List<BaseConstraint> constraints = collect.get(PrimaryConstraint.class.getName());
-        if (constraints != null && constraints.size() > 1) {
-            throw new SemanticException(SemanticErrorCode.TABLE_PRIMARY_KEY_MUST_ONE, "Multiple primary key defined");
-        }
+//        Map<String, List<BaseConstraint>> collect = constraintStatements.stream().collect(
+//            Collectors.groupingBy(x -> x.getClass().getName()));
+//        List<BaseConstraint> constraints = collect.get(PrimaryConstraint.class.getName());
+//        if (constraints != null && constraints.size() > 1) {
+//            throw new SemanticException(SemanticErrorCode.TABLE_PRIMARY_KEY_MUST_ONE, "Multiple primary key defined");
+//        }
         Set<String> sets = columnDefines.stream().map(x -> x.getColName().getValue().toLowerCase(Locale.ROOT)).collect(
             Collectors.toSet());
         Set<Identifier> constraintNames = new HashSet<>();

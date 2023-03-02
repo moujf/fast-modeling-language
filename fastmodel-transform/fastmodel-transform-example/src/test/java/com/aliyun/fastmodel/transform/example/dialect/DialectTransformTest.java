@@ -26,6 +26,8 @@ import com.aliyun.fastmodel.core.tree.expr.literal.StringLiteral;
 import com.aliyun.fastmodel.core.tree.statement.constants.TableDetailType;
 import com.aliyun.fastmodel.core.tree.statement.table.ColumnDefinition;
 import com.aliyun.fastmodel.core.tree.statement.table.CreateTable;
+import com.aliyun.fastmodel.core.tree.statement.table.constraint.BaseConstraint;
+import com.aliyun.fastmodel.core.tree.statement.table.constraint.PrimaryConstraint;
 import com.aliyun.fastmodel.core.tree.util.DataTypeUtil;
 import com.aliyun.fastmodel.transform.api.context.TransformContext;
 import com.aliyun.fastmodel.transform.api.dialect.DialectMeta;
@@ -36,6 +38,8 @@ import com.aliyun.fastmodel.transform.api.dialect.transform.DialectTransformPara
 import com.aliyun.fastmodel.transform.fml.FmlTransformer;
 import com.aliyun.fastmodel.transform.fml.datatype.Fml2OracleDataTypeConverter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.util.List;
@@ -176,9 +180,13 @@ public class DialectTransformTest {
     public void testFmlToOracle() {
         ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
                 .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
-                .primary(true)
+//                .primary(true)
                 .comment(new Comment("测试主键")).build();
-        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("col1"))
+        ColumnDefinition id1 = ColumnDefinition.builder().colName(new Identifier("id1"))
+                .dataType(DataTypeUtil.simpleType("NUMBER", ImmutableList.of(new NumericParameter("36"))))
+//                .primary(true)
+                .comment(new Comment("测试主键1")).build();
+        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("year"))
                 .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
                         .name()), null))
                 .comment(new Comment("测试DATE类型")).build();
@@ -198,11 +206,16 @@ public class DialectTransformTest {
 //                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
 //                .build();
         List<ColumnDefinition> columns = ImmutableList.of(
-                id, col1, col2
+                id, id1, col1, col2
         );
+        List<BaseConstraint> constraints = ImmutableList.of(new PrimaryConstraint(
+                new Identifier("abc"),
+                Lists.newArrayList(new Identifier("id"),new Identifier("id1"))
+        ));
         CreateTable createTable = CreateTable.builder()
                 .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
                 .detailType(TableDetailType.NORMAL_DIM).columns(columns)
+                .constraints(constraints)
                 .build();
         FmlTransformer fmlTransformer = new FmlTransformer();
         DialectNode sourceNode = fmlTransformer.transform(createTable);
@@ -213,18 +226,87 @@ public class DialectTransformTest {
 //                .transformContext(TransformContext.builder().dataTypeTransformer(fml2OracleDataTypeConverter).build())
                 .build();
         DialectNode dialectNode = DialectTransform.transform(param);
-        assertEquals(dialectNode.getNode(), "CREATE TABLE dim_shop (\n" +
-                "   id   NUMBER(36),\n" +
-                "   col1 DATE,\n" +
-                "   col2 VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
-                "   PRIMARY KEY(id)\n" +
+        assertEquals("CREATE TABLE dim_shop (\n" +
+                "   id     NUMBER(36) NOT NULL,\n" +
+                "   id1    NUMBER(36) NOT NULL,\n" +
+                "   year DATE,\n" +
+                "   col2   VARCHAR(36) DEFAULT '123' NOT NULL,\n" +
+                "   CONSTRAINT abc PRIMARY KEY(id,id1)\n" +
                 ");\n" +
                 "COMMENT ON TABLE dim_shop IS '测试表';\n" +
                 "COMMENT ON COLUMN dim_shop.id IS '测试主键';\n" +
-                "COMMENT ON COLUMN dim_shop.col1 IS '测试DATE类型';\n" +
-                "COMMENT ON COLUMN dim_shop.col2 IS '测试默认值';");
+                "COMMENT ON COLUMN dim_shop.id1 IS '测试主键1';\n" +
+                "COMMENT ON COLUMN dim_shop.year IS '测试DATE类型';\n" +
+                "COMMENT ON COLUMN dim_shop.col2 IS '测试默认值';", StringUtils.replace(StringUtils.replace(dialectNode.getNode(), SINGLE_QUOTE, ""), SINGLE_QUOTE, ""));
         DialectTransform.transform(param);
     }
+
+
+    @Test
+    public void testFmlToMysql() {
+        ColumnDefinition id = ColumnDefinition.builder().colName(new Identifier("id"))
+                .dataType(DataTypeUtil.simpleType(DataTypeEnums.INT))
+//                .primary(true)
+                .comment(new Comment("测试主键")).build();
+        ColumnDefinition id1 = ColumnDefinition.builder().colName(new Identifier("id1"))
+                .dataType(DataTypeUtil.simpleType(DataTypeEnums.DOUBLE))
+//                .primary(true)
+                .comment(new Comment("测试主键1")).build();
+        ColumnDefinition col1 = ColumnDefinition.builder().colName(new Identifier("year"))
+                .dataType(new GenericDataType(new Identifier(DataTypeEnums.DATE
+                        .name()), null))
+                .comment(new Comment("测试DATE类型")).build();
+        ColumnDefinition col2 = ColumnDefinition.builder().colName(new Identifier("col2"))
+//                .dataType(DataTypeUtil.simpleType("String", ImmutableList.of(new NumericParameter("36"))))
+                .dataType(new GenericDataType(new Identifier(DataTypeEnums.VARCHAR
+                        .name()), ImmutableList.of(new NumericParameter("36"))))
+                .notNull(true)
+                //默认值
+                .defaultValue(new StringLiteral("123"))
+                .comment(new Comment("测试默认值")).build();
+//        ColumnDefinition i1 = ColumnDefinition.builder().colName(new Identifier("i1"))
+//                .dataType(new GenericDataType(new Identifier(DataTypeEnums.BIGINT
+//                        .name()), null))
+//                .comment(new Comment("测试数值")).build();
+//        ColumnDefinition b = ColumnDefinition.builder().colName(new Identifier("b"))
+//                .dataType(DataTypeUtil.simpleType(DataTypeEnums.VARCHAR, new NumericParameter("100")))
+//                .build();
+        List<ColumnDefinition> columns = ImmutableList.of(
+                id, id1, col1, col2
+        );
+        List<BaseConstraint> constraints = ImmutableList.of(new PrimaryConstraint(
+                new Identifier("abc"),
+                Lists.newArrayList(new Identifier("id"),new Identifier("id1"))
+        ));
+        CreateTable createTable = CreateTable.builder()
+                .tableName(QualifiedName.of("dim_shop")).comment(new Comment("测试表"))
+                .detailType(TableDetailType.NORMAL_DIM).columns(columns)
+                .constraints(constraints)
+                .build();
+        FmlTransformer fmlTransformer = new FmlTransformer();
+        DialectNode sourceNode = fmlTransformer.transform(createTable);
+        DialectTransformParam param = DialectTransformParam.builder()
+                .sourceMeta(DialectMeta.getByName(DialectName.FML))
+                .sourceNode(sourceNode)
+                .targetMeta(DialectMeta.getByName(DialectName.MYSQL))
+//                .transformContext(TransformContext.builder().dataTypeTransformer(fml2OracleDataTypeConverter).build())
+                .build();
+        DialectNode dialectNode = DialectTransform.transform(param);
+        assertEquals("CREATE TABLE dim_shop\n" +
+                "(\n" +
+                "   id     INT NOT NULL COMMENT '测试主键',\n" +
+                "   id1    DOUBLE NOT NULL COMMENT '测试主键1',\n" +
+                "   year DATE COMMENT '测试DATE类型',\n" +
+                "   col2   VARCHAR(36) NOT NULL DEFAULT '123' COMMENT '测试默认值',\n" +
+                "   PRIMARY KEY(id,id1)\n" +
+                ") COMMENT '测试表'", StringUtils.replace(StringUtils.replace(dialectNode.getNode(), SINGLE_QUOTE, ""), SINGLE_QUOTE, ""));
+        DialectTransform.transform(param);
+    }
+
+    /**
+     * 单引号
+     */
+    private static final String SINGLE_QUOTE = "`";
 
     @Test
     public void testOracleToFml() {
